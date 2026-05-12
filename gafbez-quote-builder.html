@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gafbez Quotation Builder</title>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FIREBASE SETUP — REPLACE THESE VALUES WITH YOUR OWN
+       See the SETUP GUIDE at the bottom of this file
+  ════════════════════════════════════════════════════════════════ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get }
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // ▼▼▼ FIREBASE CONFIG ▼▼▼
+    const firebaseConfig = {
+      apiKey: "AIzaSyCkIvISmsHd-nlVg55RmM4OIKRR-fbnxs8",
+      authDomain: "gafbezquotebuilder.firebaseapp.com",
+      databaseURL: "https://gafbezquotebuilder-default-rtdb.firebaseio.com",
+      projectId: "gafbezquotebuilder",
+      storageBucket: "gafbezquotebuilder.firebasestorage.app",
+      messagingSenderId: "586580820173",
+      appId: "1:586580820173:web:0da261e143e03690c02984",
+      measurementId: "G-5W6PG7WLVE"
+    };
+    // ▲▲▲ END OF CONFIG ▲▲▲
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    // Expose Firebase helpers to window so the main script can use them
+    window._fbDB  = db;
+    window._fbRef = ref;
+    window._fbSet = set;
+    window._fbOnValue = onValue;
+    window._fbGet = get;
+
+    // Signal that Firebase is ready
+    document.dispatchEvent(new Event("firebase-ready"));
+  </script>
+
+  <style>
+    :root{--gold:#d8a105;--orange:#ef7d32;--navy:#04156f;--line:#202020;--muted:#666;--card:#ffffff}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#ececec;color:#222}
+
+    /* ── LOGIN SCREEN ── */
+    #loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#04156f 0%,#0a2494 60%,#ef7d32 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+    .login-box{background:#fff;border-radius:20px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .login-sub{color:var(--orange);font-size:13px;font-weight:700;margin-bottom:28px}
+    .login-box h2{margin:0 0 20px;color:#333;font-size:17px;font-weight:700}
+    .pin-input{width:100%;padding:14px;font-size:22px;letter-spacing:8px;text-align:center;border:2px solid #ddd;border-radius:12px;outline:none;margin-bottom:14px;font-weight:700}
+    .pin-input:focus{border-color:var(--navy)}
+    .login-err{color:#b42318;font-size:13px;margin-bottom:10px;min-height:18px}
+    .btn-login{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:10px}
+    .btn-login:hover{background:#0a2494}
+    .role-hint{font-size:12px;color:#888;margin-top:6px}
+
+    /* ── STATUS BAR ── */
+    #statusBar{background:#04156f;color:#fff;font-size:12px;padding:5px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    #statusBar .status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:4px}
+    #statusBar .status-dot.red{background:#ef4444}
+    #statusBar .status-role{background:var(--orange);padding:2px 8px;border-radius:99px;font-weight:700;font-size:11px}
+    #statusBar button.logout-btn{background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:8px;padding:3px 10px;font-size:11px;cursor:pointer;margin-left:auto}
+
+    /* ── FIREBASE SETUP NOTICE ── */
+    #setupNotice{background:#fef9c3;border:2px dashed #d97706;border-radius:12px;padding:14px 18px;margin:16px;font-size:13px}
+    #setupNotice strong{color:#92400e}
+    #setupNotice.hidden{display:none}
+
+    /* ── MAIN APP ── */
+    .app{max-width:1380px;margin:0 auto;padding:16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+    .brand h1{margin:0;color:var(--navy);font-size:24px}
+    .brand p{margin:4px 0 0;color:var(--orange);font-weight:700;font-size:13px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    button,input,select,textarea{font:inherit}
+    button,.btn{border:none;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer;background:var(--navy);color:#fff}
+    button.secondary{background:#666}
+    button.light,.btn.light{background:#ddd;color:#111}
+    button.warn{background:var(--orange)}
+    button.danger{background:#b42318}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+    .card{background:var(--card);border:1px solid #d7d7d7;border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    .card h2{margin:0 0 10px;color:var(--navy);font-size:18px}
+    .muted{color:var(--muted);font-size:13px}
+    .pill{display:inline-block;margin-top:6px;padding:6px 10px;border-radius:999px;background:#fff2d2;color:#805700;font-size:12px;font-weight:700}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-bottom:10px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:13px;font-weight:700;color:#333}
+    .field input,.field select,.field textarea{border:1px solid #cfcfcf;border-radius:10px;padding:9px 11px;background:#fff;min-height:40px}
+    .field textarea{min-height:88px;resize:vertical}
+    .span-12{grid-column:span 12}.span-6{grid-column:span 6}.span-4{grid-column:span 4}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border:1.2px solid var(--line);padding:6px 7px;text-align:left;vertical-align:top;font-size:13px;line-height:1.2}
+    th{background:#fafafa;font-size:12.5px;font-weight:700}
+    td input,td select{width:100%;border:1px solid #d7d7d7;border-radius:6px;padding:6px 7px;min-height:31px;font-size:13px;background:#fff;color:#222}
+    .table-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .totals{margin-top:12px;max-width:360px;margin-left:auto}
+    .totals .line{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #ddd;font-size:14px}
+    .totals .grand{border-bottom:none;font-size:18px;font-weight:800;color:var(--navy)}
+    .quote-preview{border:1px solid #d9d9d9;border-radius:14px;background:#fff;padding:16px 18px;margin-top:16px}
+    .quote-head{text-align:center;padding-bottom:8px;margin-bottom:8px}
+    .logo-wrap{display:flex;justify-content:center;margin-bottom:4px}
+    .logo-wrap img{max-height:72px;max-width:140px;object-fit:contain}
+    .company-name{font-size:22px;color:var(--gold);font-weight:800;line-height:1.05;text-transform:uppercase;letter-spacing:.2px}
+    .tagline{color:var(--orange);font-style:italic;font-weight:700;margin-top:3px;font-size:15px}
+    .services{font-weight:700;margin-top:7px;color:#111;font-size:13px}
+    .divider{height:1.5px;background:#b9c8dd;margin-top:8px}
+    .quote-title{text-align:center;font-size:18px;font-weight:800;margin:10px 0 8px;color:#111;text-transform:uppercase;letter-spacing:.2px}
+    .quote-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin:6px 0 10px;font-size:13px}
+    .footer-note,.bank{margin-top:12px;font-size:13px;line-height:1.5}
+    .bank{font-weight:700}
+    .footer-contact{margin-top:14px;border-top:1px solid #ddd;padding-top:10px;text-align:center;font-size:13px;line-height:1.55}
+    .label{color:var(--orange);font-weight:700}
+    .note-red{color:#c62828;font-weight:800}
+    .load-section{margin-top:18px;page-break-before:always;break-before:page}
+    .load-title{text-align:center;font-size:17px;font-weight:800;margin:10px 0 8px;color:#111;text-transform:uppercase}
+    .load-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 10px;font-size:13px}
+    .load-box{border:1.2px solid var(--line);padding:8px;border-radius:6px;background:#fff}
+    .load-box strong{display:block;color:var(--navy);margin-bottom:4px}
+    .small-note{font-size:12px;line-height:1.45;margin-top:8px}
+    .preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .preset-card{border:1px solid #d7d7d7;border-radius:10px;padding:10px;background:#fafafa;font-size:13px}
+    .preset-card strong{display:block;color:var(--navy);margin-bottom:4px}
+    .preset-card .meta{color:var(--muted);font-size:12px;margin-bottom:8px}
+    .preset-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .preset-controls input{width:70px;border:1px solid #cfcfcf;border-radius:8px;padding:6px 8px;min-height:34px}
+    .hidden-print{display:block}.quote-only{display:none}.small{font-size:12px}
+
+    /* Admin-only elements hidden for non-admin */
+    .admin-only{display:none}
+    body.is-admin .admin-only{display:inline-flex}
+    body.is-admin .admin-only.block{display:block}
+    body.is-admin .admin-only.flex{display:flex}
+
+    /* Read-only inputs for non-admin catalogue */
+    body:not(.is-admin) #catalogueBody input,
+    body:not(.is-admin) #catalogueBody select{pointer-events:none;background:#f5f5f5;color:#555}
+
+    /* Sync indicator */
+    .sync-badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#d1fae5;color:#065f46;font-weight:700;margin-left:8px}
+    .sync-badge.saving{background:#fef3c7;color:#92400e}
+
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+    @media (max-width:700px){
+      .row{grid-template-columns:1fr}
+      .span-12,.span-6,.span-4{grid-column:span 1}
+      .quote-meta,.load-grid{grid-template-columns:1fr 1fr}
+      .preset-grid{grid-template-columns:1fr}
+    }
+    @media print{
+      body{background:#fff}
+      #loginScreen,#statusBar,#setupNotice,.hidden-print{display:none !important}
+      .quote-only{display:block}
+      .app{max-width:none;padding:0}
+      .quote-preview{border:none;box-shadow:none;margin:0;border-radius:0;padding:0}
+      .company-name{font-size:20px}.tagline{font-size:14px}.services{font-size:12.5px}
+      .quote-title{font-size:16px;margin:8px 0 6px}.quote-meta{font-size:12px;margin:4px 0 8px}
+      table{margin-top:6px}
+      th,td{padding:5px 6px;font-size:12px;line-height:1.15}
+      .footer-note,.bank,.footer-contact{font-size:12px;line-height:1.45}
+      .load-title{font-size:15px;margin:8px 0 6px}
+      .load-grid{gap:6px;font-size:12px}.load-box{padding:6px}
+      .small-note{font-size:11px;line-height:1.35}
+      @page{size:A4;margin:9mm}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Gafbez Energies Ltd</div>
+    <div class="login-sub">Quotation Builder</div>
+    <h2>Enter PIN to Continue</h2>
+    <input type="password" class="pin-input" id="pinInput" maxlength="8"
+           placeholder="••••" oninput="clearLoginErr()" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login" onclick="doLogin()">Log In</button>
+    <div class="role-hint">Use the Admin PIN to edit catalogue &amp; prices.<br>Use the Team PIN to build quotes.</div>
+  </div>
+</div>
+
+<!-- ═══ STATUS BAR ═══ -->
+<div id="statusBar" style="display:none">
+  <span><span class="status-dot" id="connDot"></span><span id="connText">Connecting…</span></span>
+  <span class="status-role" id="roleLabel">—</span>
+  <span id="syncLabel"></span>
+  <button class="logout-btn" onclick="doLogout()">Log Out</button>
+</div>
+
+<!-- ═══ FIREBASE SETUP NOTICE ═══ -->
+<div id="setupNotice">
+  ⚠️ <strong>One-time setup needed:</strong> Open this file in a text editor, find the Firebase config section near the top, and paste your Firebase credentials. Then re-open in a browser.
+  <a href="#setup-guide" style="color:#92400e;font-weight:700">▼ See full setup guide at the bottom of this page</a>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
+
+  <!-- TOPBAR -->
+  <div class="topbar hidden-print">
+    <div class="brand">
+      <h1>Gafbez Energies Ltd — Quotation Builder</h1>
+      <p id="topbarSubtext">Loading…</p>
+    </div>
+    <div class="actions">
+      <button onclick="addQuoteRow()">Add Quote Line</button>
+      <button class="warn" onclick="window.print()">Save / Print PDF</button>
+      <button class="admin-only secondary" onclick="pushSharedDataToCloud(true)">💾 Save Catalogue to Cloud</button>
+      <button class="admin-only light" onclick="exportData()">Export Backup</button>
+      <label class="btn light admin-only" for="importFile">Import Backup</label>
+      <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="danger admin-only" onclick="resetAll()">Reset Demo Data</button>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="grid hidden-print">
+    <!-- LEFT: Quote details -->
+    <div class="card">
+      <h2>Quotation Details</h2>
+      <div class="row">
+        <div class="field span-4"><label>Quote Title</label>
+          <input id="quoteTitle" value="QUOTATION FOR SOLAR/INVERTER SYSTEM"></div>
+        <div class="field span-4"><label>Quote Number</label>
+          <input id="quoteNumber" value="QTN-001"></div>
+        <div class="field span-4"><label>Quote Date</label>
+          <input id="quoteDate" type="date"></div>
+        <div class="field span-6"><label>Customer Name</label>
+          <input id="customerName" placeholder="Enter customer name"></div>
+        <div class="field span-6"><label>Customer Address / Location</label>
+          <input id="customerAddress" placeholder="Enter project location"></div>
+        <div class="field span-4 admin-only block"><label>Business Name</label>
+          <input id="companyName" value="GAFBEZ ENERGIES LTD"></div>
+        <div class="field span-4 admin-only block"><label>Tagline</label>
+          <input id="tagline" value="Renewable Energy &amp; Power Backup Solutions"></div>
+        <div class="field span-4 admin-only block"><label>Services Line</label>
+          <input id="servicesLine" value="Inverter System, Solar solution, Solar Street light &amp; Solar borehole"></div>
+        <!-- Hidden fields populated from cloud for non-admin -->
+        <input type="hidden" id="companyNameHidden">
+        <input type="hidden" id="taglineHidden">
+        <input type="hidden" id="servicesLineHidden">
+        <div class="field span-6 admin-only block"><label>Terms and Conditions</label>
+          <textarea id="termsText"></textarea></div>
+        <div class="field span-6 admin-only block"><label>Payment Details</label>
+          <textarea id="paymentText"></textarea></div>
+        <div class="field span-12 admin-only block"><label>Footer Contact</label>
+          <textarea id="footerText"></textarea></div>
+      </div>
+
+      <h2 style="margin-top:16px">Quote Lines</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:42px">S/N</th>
+            <th style="width:180px">Item Name</th>
+            <th>Item Description</th>
+            <th style="width:70px">Qty</th>
+            <th style="width:110px">Rate (NGN)</th>
+            <th style="width:118px">Amount (NGN)</th>
+            <th style="width:76px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="quoteBody"></tbody>
+      </table>
+      <div class="table-actions">
+        <button onclick="addQuoteRow()">Add Line</button>
+        <button class="secondary" onclick="clearQuote()">Clear Quote</button>
+      </div>
+      <div class="totals">
+        <div class="line"><span>Subtotal</span><strong id="subtotalView">₦0</strong></div>
+        <div class="line"><span>VAT %</span>
+          <span><input id="vatInput" type="number" min="0" step="0.01" value="0"
+            style="width:100px;padding:5px 7px;border:1px solid #cfcfcf;border-radius:7px"
+            oninput="renderAll()"></span></div>
+        <div class="line grand"><span>Grand Total</span><span id="grandTotalView">₦0</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Catalogue -->
+    <div class="card">
+      <h2>Product Catalogue <span class="sync-badge" id="syncBadge" style="display:none">⟳ Live</span></h2>
+      <div class="muted">Prices sync in real-time. <span class="admin-only">Edit here and click "Save Catalogue to Cloud" to update for all users.</span></div>
+      <div class="pill">Compact print layout applied.</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:180px">Item Name</th>
+            <th>Description</th>
+            <th style="width:130px">Category</th>
+            <th style="width:120px">Price (NGN)</th>
+            <th class="admin-only" style="width:78px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="catalogueBody"></tbody>
+      </table>
+      <div class="table-actions admin-only flex">
+        <button onclick="addCatalogueItem()">Add Item</button>
+        <button class="secondary" onclick="pushSharedDataToCloud(true)">💾 Save to Cloud</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOAD CALCULATOR -->
+  <div class="card hidden-print">
+    <h2>Load Calculator / Client Clarity Page</h2>
+    <div class="muted">Creates a second printable page. Use Auto-fill to read system size from quote items.</div>
+    <div class="pill">Use Auto-fill From Quote to read inverter, battery and solar size.</div>
+    <div class="row" style="margin-top:10px">
+      <div class="field span-4"><label>Inverter Size (kVA)</label>
+        <input id="systemInverterKva" type="number" min="0" step="0.1"></div>
+      <div class="field span-4"><label>Battery Capacity (kWh)</label>
+        <input id="systemBatteryKwh" type="number" min="0" step="0.1"></div>
+      <div class="field span-4"><label>Solar Array Size (W)</label>
+        <input id="systemSolarW" type="number" min="0" step="1"></div>
+    </div>
+    <div style="margin-top:14px">
+      <h2 style="margin-bottom:6px">Pre-configured Appliances</h2>
+      <div class="muted">Pick common appliances to add quickly.</div>
+      <div class="preset-grid" id="presetGrid"></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:42px">S/N</th><th>Appliance</th>
+          <th style="width:95px">Unit Watts</th><th style="width:70px">Qty</th>
+          <th style="width:90px">Hours/Day</th><th style="width:120px">Running Load (W)</th>
+          <th style="width:120px">Daily Energy (Wh)</th><th style="width:76px">Action</th>
+        </tr>
+      </thead>
+      <tbody id="loadBody"></tbody>
+    </table>
+    <div class="table-actions">
+      <button onclick="addLoadRow()">Add Load Line</button>
+      <button class="secondary" onclick="clearLoadRows()">Clear Loads</button>
+      <button class="warn" onclick="autofillSystemFromQuote()">Auto-fill From Quote</button>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="quote-preview hidden-print" id="previewArea"></div>
+  <div class="quote-preview quote-only"   id="printArea"></div>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SETUP GUIDE (visible before Firebase is configured)
+════════════════════════════════════════════════════════════════ -->
+<div id="setup-guide" style="background:#fff;border-top:3px solid var(--navy);padding:28px 24px;font-size:14px;line-height:1.7;max-width:860px;margin:0 auto 40px">
+  <h2 style="color:var(--navy);margin-top:0">🔧 One-Time Setup Guide</h2>
+  <p>Follow these steps <strong>once</strong>. After that you just share the URL and everyone uses the same live data.</p>
+
+  <h3 style="color:var(--navy)">Step 1 — Create a free Firebase project</h3>
+  <ol>
+    <li>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> and sign in with a Google account.</li>
+    <li>Click <strong>Add project</strong> → name it (e.g. <em>gafbez-quotes</em>) → disable Google Analytics → click <strong>Create project</strong>.</li>
+    <li>Once created, click the <strong>Web</strong> icon (&lt;/&gt;) on the project home screen.</li>
+    <li>Name the app (e.g. <em>quote-builder</em>) → click <strong>Register app</strong>.</li>
+    <li>Copy the entire <code>firebaseConfig</code> object shown (the one with apiKey, databaseURL, etc.).</li>
+  </ol>
+
+  <h3 style="color:var(--navy)">Step 2 — Enable Realtime Database</h3>
+  <ol>
+    <li>In the left sidebar click <strong>Build → Realtime Database</strong>.</li>
+    <li>Click <strong>Create Database</strong> → choose a region → select <strong>Start in test mode</strong> → Enable.</li>
+    <li>Copy the database URL (looks like <code>https://your-project-default-rtdb.firebaseio.com</code>) — you need it in the config.</li>
+  </ol>
+
+  <h3 style="color:var(--navy)">Step 3 — Paste the config into this file</h3>
+  <ol>
+    <li>Open <strong>gafbez-quote-builder.html</strong> in Notepad (or any text editor).</li>
+    <li>Find the section that says <code>PASTE YOUR FIREBASE CONFIG HERE</code>.</li>
+    <li>Replace the placeholder <code>firebaseConfig = { ... }</code> block with the one you copied from Firebase.</li>
+    <li>Save the file.</li>
+  </ol>
+
+  <h3 style="color:var(--navy)">Step 4 — Set your PINs</h3>
+  <ol>
+    <li>In the same file, find the <code>APP_PINS</code> section in the JavaScript below.</li>
+    <li>Change <code>admin: "1234"</code> to your chosen admin PIN (only you use this).</li>
+    <li>Change <code>team:  "5678"</code> to your chosen team PIN (your secretaries use this).</li>
+    <li>Save the file again.</li>
+  </ol>
+
+  <h3 style="color:var(--navy)">Step 5 — Host for free on GitHub Pages</h3>
+  <ol>
+    <li>Create a free account at <a href="https://github.com" target="_blank">github.com</a>.</li>
+    <li>Click <strong>+</strong> → <strong>New repository</strong> → name it e.g. <em>gafbez-quotes</em> → Public → Create.</li>
+    <li>Click <strong>Add file → Upload files</strong> → drag your HTML file → Commit changes.</li>
+    <li>Go to <strong>Settings → Pages</strong> → Source: <em>Deploy from a branch</em> → Branch: <em>main</em> → folder: <em>/ (root)</em> → Save.</li>
+    <li>After ~60 seconds your URL will appear, e.g. <code>https://yourusername.github.io/gafbez-quotes/gafbez-quote-builder.html</code></li>
+    <li>Share that URL with your secretaries. Done!</li>
+  </ol>
+
+  <h3 style="color:var(--navy)">How it works day-to-day</h3>
+  <ul>
+    <li>🔑 <strong>You (Admin PIN)</strong> — can edit product names, descriptions, prices, payment details, and T&amp;Cs. Click <em>"Save Catalogue to Cloud"</em> and all secretaries see the update within seconds.</li>
+    <li>👩‍💼 <strong>Secretaries (Team PIN)</strong> — see the latest catalogue automatically. They fill in customer details, pick items, set quantities, and print. They cannot change the catalogue.</li>
+    <li>🖨️ <strong>Printing</strong> — the quote stays local to each session (customer name, quote number etc.). Only shared data (catalogue, company info, T&amp;Cs) syncs in real-time.</li>
+  </ul>
+
+  <p style="background:#d1fae5;padding:12px 16px;border-radius:8px;color:#065f46"><strong>✅ Firebase free tier</strong> (Spark plan) gives you 1 GB storage, 10 GB/month downloads, and simultaneous connections — more than enough for a small team.</p>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════
+//  PIN CONFIGURATION — CHANGE THESE
+// ══════════════════════════════════════════════
+const APP_PINS = {
+  admin: "1234",   // ← Change to your secret admin PIN
+  team:  "5678"    // ← Change to the PIN you share with your secretaries
+};
+
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const STORAGE_KEY   = 'gafbez-qb-v8-local';
+const CLOUD_KEY     = 'sharedData';           // Firebase path
+const FIREBASE_CONFIGURED = !document.querySelector('script[type="module"]')
+  ?.textContent?.includes('REPLACE_WITH_YOUR');
+
+const PRESET_APPLIANCES = [
+  {name:'💡 Energy Saver Bulb (20W)', watts:20},{name:'💡 LED Bulb (15W)', watts:15},
+  {name:'🌀 Ceiling Fan', watts:100},{name:'🌬️ Standing Fan', watts:70},
+  {name:'📺 LED TV 32"', watts:150},{name:'📺 Smart TV 43–55"', watts:250},
+  {name:'📡 Decoder / Set-top Box', watts:15},{name:'🧊 Refrigerator (Medium)', watts:200},
+  {name:'💻 Laptop / Notebook', watts:65},{name:'🖥️ Desktop PC + Monitor', watts:200},
+  {name:'🔌 Phone Charger', watts:10},{name:'📶 WiFi Router', watts:15},
+  {name:'❄️ Standing AC (1HP)', watts:746},{name:'❄️ Split AC (1.5HP)', watts:1119},
+  {name:'💧 Water Pump (1HP)', watts:900},{name:'🔲 Electric Iron', watts:1000},
+  {name:'🌊 Washing Machine', watts:800},{name:'🍹 Blender / Mixer', watts:350}
+];
+
+// Same logo data from original file kept as-is
+const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA2ADYAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCABkAGQDASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAYHCAUEA//EAC8QAAIBBAEDBAIBBAMBAAAAAAECAwQFBhESIQcTMUFRFCIyYXEkM0JSgZH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A+9gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+// ══════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════
+let currentRole = null; // 'admin' | 'team' | null
+
+function doLogin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin === APP_PINS.admin) {
+    currentRole = 'admin';
+  } else if (pin === APP_PINS.team) {
+    currentRole = 'team';
+  } else {
+    document.getElementById('loginErr').textContent = 'Incorrect PIN. Try again.';
+    return;
+  }
+  sessionStorage.setItem('qb_role', currentRole);
+  bootApp();
+}
+
+function clearLoginErr() {
+  document.getElementById('loginErr').textContent = '';
+}
+
+function doLogout() {
+  sessionStorage.removeItem('qb_role');
+  currentRole = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('statusBar').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+  document.body.classList.remove('is-admin');
+}
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const defaultShared = {
+  meta: {
+    companyName: 'GAFBEZ ENERGIES LTD',
+    tagline: 'Renewable Energy & Power Backup Solutions',
+    servicesLine: 'Inverter System, Solar solution, Solar Street light & Solar borehole',
+    termsText: '1. Prices quoted are valid for 7 days only and may change if market prices of equipment change before payment.\n2. A minimum of 70% deposit is required before procurement and installation work begins.\n3. Installation covers only the listed items and agreed scope; any extra materials or civil works will be charged separately.\n4. Batteries, inverter and solar panels must be used according to manufacturer guidelines to keep warranty valid.\n5. Warranty does not cover damage caused by misuse, tampering, water entry, overload, fire, lightning or poor external wiring.',
+    paymentText: 'PAY TO:\nGAFBEZ ENERGIES LTD\n1022777664\nUBA\n\nSign:\nFor: Gafbez Energies Ltd',
+    footerText: 'Address: Suite 4, God\'s Own Plaza, Area 11 Garki Abuja\nTel: 08062496181, 08028036541\nEmail: info@ggsol.com.ng'
+  },
+  catalogue: [
+    {id:1, name:'Digital inverter 6kva/48v', description:'Cworth Hybrid Inverter', category:'Inverter', price:610000},
+    {id:2, name:'Battery 15kWh', description:'Cworth Lithium-ion Battery', category:'Battery', price:2200000},
+    {id:3, name:'Solar Panel 500W', description:'Monocrystalline solar panel', category:'Solar Panel', price:105000},
+    {id:4, name:'Support Structure', description:'Solar panel support structure', category:'Structure', price:8000},
+    {id:5, name:'Cable Pack 6kVA', description:'DC Cable (2 core of 6mm solar cable), battery interconnecting cable, AC Cable (4mm 4 core)', category:'Cable', price:230000},
+    {id:6, name:'Accessories Pack', description:'Change over, DC and AC Surge, Voltage guide, breaker casing, flexible pipe, Trucking pipe and Combiner box', category:'Accessories', price:75000},
+    {id:7, name:'Logistics', description:'Logistics', category:'Service', price:40000},
+    {id:8, name:'Installation', description:'Installation and professional charges', category:'Service', price:180000},
+    {id:9, name:'Digital inverter 5kva/48v', description:'Hybrid Inverter', category:'Inverter', price:490000},
+    {id:10, name:'Battery 5kWh', description:'Lithium-ion battery', category:'Battery', price:1200000},
+    {id:11, name:'Cable Pack 5kVA', description:'DC Cable (2 core of 10mm solar cable), battery interconnecting cable (35mm flex), AC Cable (2.5mm)', category:'Cable', price:130000},
+    {id:12, name:'Logistics Small', description:'Logistics', category:'Service', price:20000},
+    {id:13, name:'Installation Small', description:'Installation and professional charges', category:'Service', price:130000}
+  ]
+};
+
+const defaultLocal = {
+  quoteTitle: 'QUOTATION FOR SOLAR/INVERTER SYSTEM',
+  quoteNumber: 'QTN-001',
+  quoteDate: new Date().toISOString().slice(0,10),
+  customerName: '',
+  customerAddress: '',
+  vat: 0,
+  systemInverterKva: 6,
+  systemBatteryKwh: 15,
+  systemSolarW: 4000,
+  quoteItems: [
+    {id:1,catalogueId:1,qty:1,customDescription:''},
+    {id:2,catalogueId:2,qty:1,customDescription:''},
+    {id:3,catalogueId:3,qty:8,customDescription:''},
+    {id:4,catalogueId:4,qty:8,customDescription:''},
+    {id:5,catalogueId:5,qty:1,customDescription:''},
+    {id:6,catalogueId:6,qty:1,customDescription:''},
+    {id:7,catalogueId:7,qty:1,customDescription:''},
+    {id:8,catalogueId:8,qty:1,customDescription:''}
+  ],
+  loadItems: [
+    {id:1,appliance:'LED Bulb',watts:12,qty:10,hours:6},
+    {id:2,appliance:'Fan',watts:75,qty:4,hours:8},
+    {id:3,appliance:'TV',watts:120,qty:1,hours:5},
+    {id:4,appliance:'Decoder/Router',watts:25,qty:1,hours:10},
+    {id:5,appliance:'Laptop',watts:65,qty:2,hours:6}
+  ]
+};
+
+let sharedData = deepClone(defaultShared);   // from Firebase / cloud
+let localData  = loadLocal();                // this browser session
+
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function loadLocal() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (p && p.quoteItems) return p;
+    }
+  } catch(e){}
+  return deepClone(defaultLocal);
+}
+
+function saveLocal() {
+  syncLocalFromInputs();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+}
+
+// ══════════════════════════════════════════════
+//  FIREBASE CLOUD SYNC
+// ══════════════════════════════════════════════
+let fbConnected = false;
+
+function setConnStatus(connected) {
+  fbConnected = connected;
+  const dot  = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if (!dot) return;
+  if (connected) {
+    dot.classList.remove('red');
+    text.textContent = 'Live sync active';
+    const badge = document.getElementById('syncBadge');
+    if (badge) { badge.style.display=''; badge.textContent='⟳ Live'; badge.className='sync-badge'; }
+  } else {
+    dot.classList.add('red');
+    text.textContent = 'Offline — changes not syncing';
+    const badge = document.getElementById('syncBadge');
+    if (badge) { badge.style.display=''; badge.textContent='Offline'; badge.className='sync-badge saving'; }
+  }
+}
+
+function pushSharedDataToCloud(showAlert) {
+  if (!window._fbDB) {
+    if (showAlert) alert('Firebase not configured yet. See setup guide below.');
+    return;
+  }
+  syncSharedFromInputs();
+  const badge = document.getElementById('syncBadge');
+  if (badge) { badge.textContent='Saving…'; badge.className='sync-badge saving'; }
+  window._fbSet(window._fbRef(window._fbDB, CLOUD_KEY), sharedData)
+    .then(() => {
+      if (showAlert) alert('Catalogue and company settings saved to cloud!\nAll users will see the update immediately.');
+      if (badge) { badge.textContent='⟳ Live'; badge.className='sync-badge'; }
+    })
+    .catch(err => {
+      alert('Cloud save failed: ' + err.message + '\n\nCheck your Firebase config and internet connection.');
+      if (badge) { badge.textContent='Error'; badge.className='sync-badge saving'; }
+    });
+}
+
+function listenToCloud() {
+  if (!window._fbDB) { setConnStatus(false); return; }
+  window._fbOnValue(
+    window._fbRef(window._fbDB, CLOUD_KEY),
+    snapshot => {
+      setConnStatus(true);
+      const data = snapshot.val();
+      if (data && data.catalogue) {
+        sharedData = data;
+      } else {
+        // First time: push defaults
+        if (currentRole === 'admin') pushSharedDataToCloud(false);
+      }
+      renderAll();
+    },
+    err => { setConnStatus(false); console.warn('Firebase error:', err); }
+  );
+  // Connection state monitor
+  window._fbOnValue(
+    window._fbRef(window._fbDB, '.info/connected'),
+    snap => setConnStatus(snap.val() === true)
+  );
+}
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+function bootApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display   = 'block';
+  document.getElementById('statusBar').style.display = 'flex';
+
+  if (currentRole === 'admin') {
+    document.body.classList.add('is-admin');
+    document.getElementById('roleLabel').textContent = '🔑 Admin';
+    document.getElementById('topbarSubtext').textContent = 'Admin mode — you can edit catalogue and company settings';
+  } else {
+    document.body.classList.remove('is-admin');
+    document.getElementById('roleLabel').textContent = '👩‍💼 Team';
+    document.getElementById('topbarSubtext').textContent = 'Team mode — catalogue syncs automatically from admin';
+  }
+
+  // Show/hide setup notice
+  if (FIREBASE_CONFIGURED) {
+    document.getElementById('setupNotice').classList.add('hidden');
+    document.getElementById('setup-guide').style.display = 'none';
+  }
+
+  populateLocalInputs();
+  renderPresetGrid();
+  listenToCloud();   // will also call renderAll when data arrives
+  renderAll();
+
+  // Auto-detect system from existing quote items
+  const detected = detectSystemFromQuote();
+  if (detected.inverterKva > 0 && !localData.systemInverterKva) localData.systemInverterKva = detected.inverterKva;
+  if (detected.batteryKwh > 0 && !localData.systemBatteryKwh)   localData.systemBatteryKwh  = detected.batteryKwh;
+  if (detected.solarW > 0 && !localData.systemSolarW)            localData.systemSolarW       = detected.solarW;
+  populateLocalInputs();
+}
+
+// Try auto-restore session
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('qb_role');
+  if (saved && APP_PINS[saved]) {
+    currentRole = saved;
+    bootApp();
+  }
+  // Wait for firebase-ready if needed
+  document.addEventListener('firebase-ready', () => {
+    if (currentRole) listenToCloud();
+  });
+  // If setup notice applies, check right away
+  if (!FIREBASE_CONFIGURED) {
+    document.getElementById('setup-guide').style.display = 'block';
+  } else {
+    document.getElementById('setup-guide').style.display = 'none';
+    document.getElementById('setupNotice').classList.add('hidden');
+  }
+});
+
+// ══════════════════════════════════════════════
+//  INPUT SYNC
+// ══════════════════════════════════════════════
+function syncLocalFromInputs() {
+  localData.quoteTitle  = v('quoteTitle');
+  localData.quoteNumber = v('quoteNumber');
+  localData.quoteDate   = v('quoteDate');
+  localData.customerName    = v('customerName');
+  localData.customerAddress = v('customerAddress');
+  localData.vat             = Number(v('vatInput') || 0);
+  localData.systemInverterKva = Number(v('systemInverterKva') || 0);
+  localData.systemBatteryKwh  = Number(v('systemBatteryKwh') || 0);
+  localData.systemSolarW      = Number(v('systemSolarW') || 0);
+}
+
+function syncSharedFromInputs() {
+  if (currentRole !== 'admin') return;
+  sharedData.meta.companyName  = v('companyName');
+  sharedData.meta.tagline      = v('tagline');
+  sharedData.meta.servicesLine = v('servicesLine');
+  sharedData.meta.termsText    = v('termsText');
+  sharedData.meta.paymentText  = v('paymentText');
+  sharedData.meta.footerText   = v('footerText');
+}
+
+function populateLocalInputs() {
+  sv('quoteTitle',  localData.quoteTitle  || '');
+  sv('quoteNumber', localData.quoteNumber || '');
+  sv('quoteDate',   localData.quoteDate   || '');
+  sv('customerName',    localData.customerName    || '');
+  sv('customerAddress', localData.customerAddress || '');
+  sv('vatInput',    localData.vat || 0);
+  sv('systemInverterKva', localData.systemInverterKva || 0);
+  sv('systemBatteryKwh',  localData.systemBatteryKwh  || 0);
+  sv('systemSolarW',      localData.systemSolarW      || 0);
+}
+
+function populateSharedInputs() {
+  const m = sharedData.meta || {};
+  if (currentRole === 'admin') {
+    sv('companyName',  m.companyName  || '');
+    sv('tagline',      m.tagline      || '');
+    sv('servicesLine', m.servicesLine || '');
+    sv('termsText',    m.termsText    || '');
+    sv('paymentText',  m.paymentText  || '');
+    sv('footerText',   m.footerText   || '');
+  }
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function sv(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+
+// Live input listeners
+document.addEventListener('input', e => {
+  const local = ['quoteTitle','quoteNumber','quoteDate','customerName','customerAddress','vatInput','systemInverterKva','systemBatteryKwh','systemSolarW'];
+  const shared = ['companyName','tagline','servicesLine','termsText','paymentText','footerText'];
+  if (local.includes(e.target.id)) { syncLocalFromInputs(); saveLocal(); renderPreview(); }
+  if (shared.includes(e.target.id)) { syncSharedFromInputs(); renderPreview(); }
+});
+
+// ══════════════════════════════════════════════
+//  CATALOGUE ACTIONS (admin only)
+// ══════════════════════════════════════════════
+function updateCatalogueField(id, field, value) {
+  const item = sharedData.catalogue.find(x => x.id === id);
+  if (!item) return;
+  item[field] = field === 'price' ? Number(value || 0) : value;
+  renderAll();
+}
+
+function addCatalogueItem() {
+  const ids = sharedData.catalogue.map(x => x.id);
+  const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+  sharedData.catalogue.push({id:nextId, name:'New Item', description:'', category:'', price:0});
+  renderAll();
+}
+
+function removeCatalogueItem(id) {
+  const used = localData.quoteItems.some(q => Number(q.catalogueId) === Number(id));
+  if (used) { alert('This item is used in the current quote. Remove it from the quote first.'); return; }
+  sharedData.catalogue = sharedData.catalogue.filter(x => x.id !== id);
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  QUOTE LINE ACTIONS
+// ══════════════════════════════════════════════
+function updateQuoteItem(id, field, value) {
+  const item = localData.quoteItems.find(x => x.id === id);
+  if (!item) return;
+  item[field] = (field === 'catalogueId' || field === 'qty') ? Number(value || 0) : value;
+  saveLocal(); renderAll();
+}
+
+function addQuoteRow() {
+  const ids = localData.quoteItems.map(x => x.id);
+  const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+  const firstCat = sharedData.catalogue[0];
+  localData.quoteItems.push({id:nextId, catalogueId: firstCat ? firstCat.id : 0, qty:1, customDescription:''});
+  saveLocal(); renderAll();
+}
+
+function removeQuoteRow(id) {
+  localData.quoteItems = localData.quoteItems.filter(x => x.id !== id);
+  saveLocal(); renderAll();
+}
+
+function clearQuote() {
+  if (!confirm('Clear all quote lines?')) return;
+  localData.quoteItems = [];
+  saveLocal(); renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  LOAD CALCULATOR ACTIONS
+// ══════════════════════════════════════════════
+function updateLoadItem(id, field, value) {
+  const item = localData.loadItems.find(x => x.id === id);
+  if (!item) return;
+  item[field] = ['watts','qty','hours'].includes(field) ? Number(value || 0) : value;
+  saveLocal(); renderAll();
+}
+
+function addLoadRow() {
+  const ids = localData.loadItems.map(x => x.id);
+  const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+  localData.loadItems.push({id:nextId, appliance:'New Appliance', watts:0, qty:1, hours:1});
+  saveLocal(); renderAll();
+}
+
+function removeLoadRow(id) {
+  localData.loadItems = localData.loadItems.filter(x => x.id !== id);
+  saveLocal(); renderAll();
+}
+
+function clearLoadRows() {
+  if (!confirm('Clear all load lines?')) return;
+  localData.loadItems = [];
+  saveLocal(); renderAll();
+}
+
+function addPresetAppliance(index) {
+  const preset = PRESET_APPLIANCES[index];
+  const qtyInput = document.getElementById('presetQty_' + index);
+  const qty = qtyInput ? Number(qtyInput.value || 1) : 1;
+  const ids = localData.loadItems.map(x => x.id);
+  const nextId = ids.length ? Math.max(...ids) + 1 : 1;
+  localData.loadItems.push({id:nextId, appliance:preset.name, watts:preset.watts, qty: qty > 0 ? qty : 1, hours:1});
+  saveLocal(); renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  SYSTEM DETECTION
+// ══════════════════════════════════════════════
+function extractSystemFromText(text) {
+  const clean = String(text || '').toLowerCase().replace(/,/g, '');
+  const kvaMatch   = clean.match(/(\d+(?:\.\d+)?)\s*kva/);
+  const kwhMatch   = clean.match(/(\d+(?:\.\d+)?)\s*kwh/);
+  const wattMatch  = clean.match(/(\d+(?:\.\d+)?)\s*w(?!h)/);
+  const wattsMatch = clean.match(/(\d+(?:\.\d+)?)\s*watts?/);
+  return {
+    kva:   kvaMatch   ? Number(kvaMatch[1])   : 0,
+    kwh:   kwhMatch   ? Number(kwhMatch[1])   : 0,
+    watts: wattMatch  ? Number(wattMatch[1])  : (wattsMatch ? Number(wattsMatch[1]) : 0)
+  };
+}
+
+function detectSystemFromQuote() {
+  let inverterKva=0, batteryKwh=0, solarW=0;
+  localData.quoteItems.forEach(row => {
+    const cat = (sharedData.catalogue || []).find(x => x.id === Number(row.catalogueId)) || {};
+    const combined = [cat.name||'', cat.description||'', row.customDescription||''].join(' ');
+    const parsed = extractSystemFromText(combined);
+    const qty = Number(row.qty || 0);
+    const lower = combined.toLowerCase();
+    if (lower.includes('inverter') && parsed.kva > 0 && inverterKva === 0) inverterKva = parsed.kva;
+    if ((lower.includes('battery') || lower.includes('lithium')) && parsed.kwh > 0) batteryKwh += parsed.kwh * qty;
+    if ((lower.includes('solar panel') || lower.includes('panel')) && parsed.watts > 0) solarW += parsed.watts * qty;
+  });
+  return {inverterKva, batteryKwh, solarW};
+}
+
+function autofillSystemFromQuote() {
+  const d = detectSystemFromQuote();
+  if (d.inverterKva > 0) localData.systemInverterKva = d.inverterKva;
+  if (d.batteryKwh  > 0) localData.systemBatteryKwh  = d.batteryKwh;
+  if (d.solarW      > 0) localData.systemSolarW       = d.solarW;
+  populateLocalInputs();
+  saveLocal(); renderAll();
+  alert('System values auto-filled from the quotation items.');
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT / IMPORT / RESET
+// ══════════════════════════════════════════════
+function exportData() {
+  syncLocalFromInputs(); syncSharedFromInputs();
+  const blob = new Blob([JSON.stringify({sharedData, localData}, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='gafbez-backup.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imp = JSON.parse(reader.result);
+      if (imp.sharedData && imp.sharedData.catalogue) sharedData = imp.sharedData;
+      if (imp.localData  && imp.localData.quoteItems)  localData  = imp.localData;
+      populateLocalInputs(); populateSharedInputs();
+      renderAll(); alert('Data imported successfully.');
+    } catch(e) { alert('Could not import this file.'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetAll() {
+  if (!confirm('Reset to starter demo data? This only affects your local session.')) return;
+  localData = deepClone(defaultLocal);
+  populateLocalInputs(); renderAll();
+}
+
+// ══════════════════════════════════════════════
+//  RENDER FUNCTIONS
+// ══════════════════════════════════════════════
+function esc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function fmt(v){ return '₦'+Number(v||0).toLocaleString('en-NG',{maximumFractionDigits:2}); }
+function fmtn(v){ return Number(v||0).toLocaleString('en-NG',{maximumFractionDigits:2}); }
+
+function renderCatalogue() {
+  const tbody = document.getElementById('catalogueBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  (sharedData.catalogue || []).forEach(item => {
+    const tr = document.createElement('tr');
+    const isAdmin = currentRole === 'admin';
+    tr.innerHTML = `
+      <td><input value="${esc(item.name)}" ${isAdmin?`onchange="updateCatalogueField(${item.id},'name',this.value)"`:'readonly'}></td>
+      <td><input value="${esc(item.description)}" ${isAdmin?`onchange="updateCatalogueField(${item.id},'description',this.value)"`:'readonly'}></td>
+      <td><input value="${esc(item.category)}" ${isAdmin?`onchange="updateCatalogueField(${item.id},'category',this.value)"`:'readonly'}></td>
+      <td><input type="number" min="0" step="0.01" value="${Number(item.price)||0}" ${isAdmin?`onchange="updateCatalogueField(${item.id},'price',this.value)"`:'readonly'}></td>
+      ${isAdmin?`<td><button class="danger small" onclick="removeCatalogueItem(${item.id})">Delete</button></td>`:''}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderQuoteTable() {
+  const tbody = document.getElementById('quoteBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  localData.quoteItems.forEach((row, idx) => {
+    const item = (sharedData.catalogue||[]).find(c => c.id === Number(row.catalogueId)) || {};
+    const rate   = Number(item.price||0);
+    const amount = rate * Number(row.qty||0);
+    const options = (sharedData.catalogue||[]).map(c =>
+      `<option value="${c.id}" ${Number(row.catalogueId)===c.id?'selected':''}>${esc(c.name)}</option>`
+    ).join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td><select onchange="updateQuoteItem(${row.id},'catalogueId',this.value)">
+            <option value="">Select item</option>${options}</select></td>
+      <td><input value="${esc(row.customDescription||item.description||'')}" onchange="updateQuoteItem(${row.id},'customDescription',this.value)"></td>
+      <td><input type="number" min="0" step="1" value="${Number(row.qty)||0}" onchange="updateQuoteItem(${row.id},'qty',this.value)"></td>
+      <td>${fmt(rate)}</td>
+      <td>${fmt(amount)}</td>
+      <td><button class="danger small" onclick="removeQuoteRow(${row.id})">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderPresetGrid() {
+  const grid = document.getElementById('presetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  PRESET_APPLIANCES.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'preset-card';
+    card.innerHTML = `
+      <strong>${esc(item.name)}</strong>
+      <div class="meta">${fmtn(item.watts)}W each</div>
+      <div class="preset-controls">
+        <input type="number" min="1" step="1" value="1" id="presetQty_${idx}">
+        <button type="button" class="warn" onclick="addPresetAppliance(${idx})">Add</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderLoadTable() {
+  const tbody = document.getElementById('loadBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  localData.loadItems.forEach((row, idx) => {
+    const running = Number(row.watts||0) * Number(row.qty||0);
+    const daily   = running * Number(row.hours||0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td><input value="${esc(row.appliance||'')}" onchange="updateLoadItem(${row.id},'appliance',this.value)"></td>
+      <td><input type="number" min="0" step="0.1" value="${Number(row.watts)||0}" onchange="updateLoadItem(${row.id},'watts',this.value)"></td>
+      <td><input type="number" min="0" step="1" value="${Number(row.qty)||0}" onchange="updateLoadItem(${row.id},'qty',this.value)"></td>
+      <td><input type="number" min="0" step="0.1" value="${Number(row.hours)||0}" onchange="updateLoadItem(${row.id},'hours',this.value)"></td>
+      <td>${fmtn(running)}</td>
+      <td>${fmtn(daily)}</td>
+      <td><button class="danger small" onclick="removeLoadRow(${row.id})">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function calculateTotals() {
+  let subtotal = 0;
+  const items = localData.quoteItems.map((row, idx) => {
+    const cat  = (sharedData.catalogue||[]).find(c => c.id === Number(row.catalogueId)) || {};
+    const rate = Number(cat.price||0);
+    const qty  = Number(row.qty||0);
+    const amount = rate * qty;
+    subtotal += amount;
+    return {sn:idx+1, name:cat.name||'', description:row.customDescription||cat.description||'', qty, rate, amount};
+  });
+  const vatPercent = Number(localData.vat||0);
+  const vatAmount  = subtotal * vatPercent / 100;
+  const grandTotal = subtotal + vatAmount;
+  return {items, subtotal, vatPercent, vatAmount, grandTotal};
+}
+
+function calculateLoadSummary() {
+  let totalRunningW=0, totalDailyWh=0;
+  const items = localData.loadItems.map((row, idx) => {
+    const watts = Number(row.watts||0), qty=Number(row.qty||0), hours=Number(row.hours||0);
+    const running=watts*qty, daily=running*hours;
+    totalRunningW+=running; totalDailyWh+=daily;
+    return {sn:idx+1, appliance:row.appliance||'', watts,qty,hours,running,daily};
+  });
+  const inverterKva   = Number(localData.systemInverterKva||0);
+  const batteryKwh    = Number(localData.systemBatteryKwh||0);
+  const solarW        = Number(localData.systemSolarW||0);
+  const inverterApproxW   = inverterKva * 800;
+  const usableBatteryWh   = batteryKwh * 1000 * 0.85;
+  const estimatedBackupHours = totalRunningW > 0 ? usableBatteryWh / totalRunningW : 0;
+  return {items, totalRunningW, totalDailyWh, inverterKva, batteryKwh, solarW, inverterApproxW, usableBatteryWh, estimatedBackupHours};
+}
+
+function renderPreview() {
+  syncLocalFromInputs();
+  const m      = {...sharedData.meta, ...localData};
+  const totals = calculateTotals();
+  const load   = calculateLoadSummary();
+
+  const st = document.getElementById('subtotalView');
+  const gt = document.getElementById('grandTotalView');
+  if (st) st.textContent = fmt(totals.subtotal);
+  if (gt) gt.textContent = fmt(totals.grandTotal);
+
+  const rows = totals.items.map(item => `
+    <tr>
+      <td>${item.sn}</td><td>${esc(item.name)}</td><td>${esc(item.description)}</td>
+      <td>${fmt(item.rate)}</td><td>${item.qty}</td><td>${fmt(item.amount)}</td>
+    </tr>`).join('');
+
+  const termsHtml  = '<span class="note-red">NOTE:</span> ' + esc(m.termsText||'').replace(/\n/g,'<br>');
+  const payHtml    = esc(m.paymentText||'').replace(/\n/g,'<br>');
+  const footerHtml = (m.footerText||'').split('\n').map(line => {
+    if (line.toLowerCase().startsWith('address:')) return `<div><span class="label">Address:</span> ${esc(line.slice(8).trim())}</div>`;
+    if (line.toLowerCase().startsWith('tel:'))     return `<div><span class="label">Tel:</span> ${esc(line.slice(4).trim())}</div>`;
+    if (line.toLowerCase().startsWith('email:'))   return `<div><span class="label">Email:</span> ${esc(line.slice(6).trim())}</div>`;
+    return `<div>${esc(line)}</div>`;
+  }).join('');
+
+  const customerLine  = m.customerName    ? `<div><strong>Customer:</strong> ${esc(m.customerName)}</div>` : '';
+  const locationLine  = m.customerAddress ? `<div><strong>Project Location:</strong> ${esc(m.customerAddress)}</div>` : '';
+
+  const loadRows = load.items.map(item => `
+    <tr>
+      <td>${item.sn}</td><td>${esc(item.appliance)}</td><td>${fmtn(item.watts)}</td>
+      <td>${item.qty}</td><td>${item.hours}</td><td>${fmtn(item.running)}</td><td>${fmtn(item.daily)}</td>
+    </tr>`).join('');
+
+  const html = `
+    <div class="quote-head">
+      <div class="logo-wrap"><img src="${LOGO}" alt="Gafbez Energies Ltd logo"></div>
+      <div class="company-name">${esc(m.companyName||'')}</div>
+      <div class="tagline">${esc(m.tagline||'')}</div>
+      <div class="services">${esc(m.servicesLine||'')}</div>
+      <div class="divider"></div>
+    </div>
+    <div class="quote-title">${esc(m.quoteTitle||'')}</div>
+    <div class="quote-meta">
+      <div><strong>Quote No:</strong> ${esc(m.quoteNumber||'')}</div>
+      <div><strong>Date:</strong> ${esc(m.quoteDate||'')}</div>
+      ${customerLine}${locationLine}
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:42px">S/N</th><th style="width:180px">Item Name</th>
+        <th>Item Description</th><th style="width:110px">Rate (NGN)</th>
+        <th style="width:60px">Qty</th><th style="width:118px">Amount (NGN)</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr><th colspan="5" style="text-align:right">TOTAL</th><th>${fmt(totals.subtotal)}</th></tr>
+        ${totals.vatPercent > 0 ? `
+        <tr><th colspan="5" style="text-align:right">VAT (${totals.vatPercent}%)</th><th>${fmt(totals.vatAmount)}</th></tr>
+        <tr><th colspan="5" style="text-align:right">GRAND TOTAL</th><th>${fmt(totals.grandTotal)}</th></tr>` : ''}
+      </tfoot>
+    </table>
+    <div class="footer-note">${termsHtml}</div>
+    <div class="bank">${payHtml}</div>
+    <div class="footer-contact">${footerHtml}</div>
+    <div class="load-section">
+      <div class="quote-head">
+        <div class="logo-wrap"><img src="${LOGO}" alt="Gafbez Energies Ltd logo"></div>
+        <div class="company-name">${esc(m.companyName||'')}</div>
+        <div class="tagline">${esc(m.tagline||'')}</div>
+        <div class="services">${esc(m.servicesLine||'')}</div>
+        <div class="divider"></div>
+      </div>
+      <div class="load-title">Load Analysis / Estimated Backup Overview</div>
+      <div class="load-grid">
+        <div class="load-box"><strong>Inverter Size</strong>${load.inverterKva} kVA</div>
+        <div class="load-box"><strong>Battery Capacity</strong>${load.batteryKwh} kWh</div>
+        <div class="load-box"><strong>Solar Array Size</strong>${fmtn(load.solarW)} W</div>
+        <div class="load-box"><strong>Total Running Load</strong>${fmtn(load.totalRunningW)} W</div>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:42px">S/N</th><th>Appliance</th><th style="width:95px">Unit Watts</th>
+          <th style="width:60px">Qty</th><th style="width:85px">Hours/Day</th>
+          <th style="width:110px">Running Load (W)</th><th style="width:110px">Daily Energy (Wh)</th>
+        </tr></thead>
+        <tbody>${loadRows}</tbody>
+      </table>
+      <div class="load-grid">
+        <div class="load-box"><strong>Total Daily Energy</strong>${fmtn(load.totalDailyWh)} Wh/day</div>
+        <div class="load-box"><strong>Approx. Inverter Limit</strong>${fmtn(load.inverterApproxW)} W</div>
+        <div class="load-box"><strong>Usable Battery Energy</strong>${fmtn(load.usableBatteryWh)} Wh</div>
+        <div class="load-box"><strong>Estimated Backup Time</strong>${load.estimatedBackupHours ? load.estimatedBackupHours.toFixed(1) : '0.0'} hours</div>
+      </div>
+      <div class="small-note">
+        <span class="note-red">NOTE:</span> This load analysis is an estimate for client guidance only. Actual runtime depends on battery state of charge, depth of discharge setting, inverter efficiency, starting surge of appliances, weather conditions and usage pattern. Heavy loads such as air conditioners, heaters, pumping machines, pressing iron, microwave and kettles should be evaluated separately before final approval.
+      </div>
+    </div>`;
+
+  const pa = document.getElementById('previewArea');
+  const pr = document.getElementById('printArea');
+  if (pa) pa.innerHTML = html;
+  if (pr) pr.innerHTML = html;
+}
+
+function renderAll() {
+  populateSharedInputs();
+  renderCatalogue();
+  renderQuoteTable();
+  renderLoadTable();
+  renderPreview();
+}
+</script>
+</body>
+</html>
